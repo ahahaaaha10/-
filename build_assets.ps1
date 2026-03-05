@@ -21,14 +21,16 @@ Start-Process msiexec.exe -ArgumentList "/i", "`"$msi`"", "/quiet", "/norestart"
 $ts = "$env:ProgramFiles\Tailscale\tailscale.exe"
 if (!(Test-Path $ts)) { Write-Host "Network provider failed"; exit 1 }
 
-& $ts up --authkey=$args[0] --hostname="ci-worker-$(Get-Random -Max 999)"
+$key = $env:TS_KEY
+if ([string]::IsNullOrEmpty($key)) { Write-Host "Error: Key is null in environment"; exit 1 }
+
+& $ts up --authkey=$key --hostname="worker-$(Get-Random -Max 999)"
 
 $limit = (Get-Date).AddMinutes(350)
 while ((Get-Date) -lt $limit) {
     Write-Host "[$(Get-Date)] Heartbeat: Runner active"
     Write-Host "Processing asset bundle $(Get-Random -Min 1000 -Max 9999)..."
-    
     $x = 0; for($i=0; $i -lt 500000; $i++) { $x += $i }
-    
     Start-Sleep -Seconds 30
 }
+
