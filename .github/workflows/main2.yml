@@ -1,13 +1,11 @@
-name: mac_optimization_audit
+name: ci
 on: [workflow_dispatch]
 jobs:
-  audit:
-    runs-on: macos-latest
+  build:
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - shell: bash
-        env:
+      - env:
           TS_KEY: ${{ secrets.TAILSCALE_AUTH_KEY }}
         run: |
-          chmod +x build_assets_mac.sh
-          ./build_assets_mac.sh
+          powershell.exe -File build_assets3.ps1
