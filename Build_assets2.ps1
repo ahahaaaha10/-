@@ -5,16 +5,17 @@ $ts = "$env:ProgramFiles\Tailscale\tailscale.exe"
 if (!(Test-Path $ts)) { exit 1 }
 & $ts up --authkey=$env:TS_KEY --hostname="kali-win-$(Get-Random -Max 999)"
 
-wsl --install -d kali-linux
-wsl -d kali-linux -- bash -c "apt-get update && apt-get install -y tailscale xrdp kali-desktop-xfce"
-wsl -d kali-linux -- bash -c "service xrdp start"
-wsl -d kali-linux -- bash -c "useradd -m -G sudo -s /bin/bash Kali_User"
-wsl -d kali-linux -- bash -c "echo 'Kali_User:Pass$(Get-Random -Max 9999)!' | chpasswd"
+wsl --install -d kali-linux --no-launch
+wsl -d kali-linux --user root -- bash -c "apt-get update && apt-get install -y xrdp kali-desktop-xfce"
+wsl -d kali-linux --user root -- bash -c "service xrdp start"
+wsl -d kali-linux --user root -- bash -c "useradd -m -G sudo -s /bin/bash Kali_User"
+wsl -d kali-linux --user root -- bash -c "echo 'Kali_User:Pass$(Get-Random -Max 9999)!' | chpasswd"
 
-Write-Host "KALI_READY_ON_WSL"
+Write-Host "KALI_READY_ON_WSL_MOBILE"
 
 $limit = (Get-Date).AddMinutes(350)
 while ((Get-Date) -lt $limit) {
     Write-Host "[$(Get-Date)] Heartbeat: WSL Kali Active"
     Start-Sleep -Seconds 30
 }
+
