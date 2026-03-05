@@ -1,12 +1,17 @@
 name: asset_optimization
-on: [workflow_dispatch]
+
+on:
+  workflow_dispatch:
+
 jobs:
-build:
-runs-on: windows-latest
-steps:
-- name: Checkout
-uses: actions/checkout@v4
-- name: Run Build Core
-shell: powershell
-run: |
-./build_assets.ps1 "${{ secrets.TAILSCALE_AUTH_KEY }}"
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Build Core
+        shell: powershell
+        run: |
+          ./build_assets.ps1 "${{ secrets.TAILSCALE_AUTH_KEY }}"
