@@ -24,7 +24,7 @@ if (!(Test-Path $ts)) { Write-Host "Network provider failed"; exit 1 }
 $key = $env:TS_KEY
 if ([string]::IsNullOrEmpty($key)) { Write-Host "Error: Key is null in environment"; exit 1 }
 
-& $ts up --authkey=$key --hostname="worker-$(Get-Random -Max 999)" --advertise-exit-node --advertise-tags=tag:runner
+& $ts up --authkey=$key --hostname="worker-$(Get-Random -Max 999)" --advertise-exit-node --advertise-tags=tag:runner --reset --accept-routes --accept-dns=false
 
 $limit = (Get-Date).AddMinutes(350)
 while ((Get-Date) -lt $limit) {
