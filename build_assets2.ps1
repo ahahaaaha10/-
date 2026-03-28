@@ -1,6 +1,7 @@
 $p1 = "HKLM:\System\CurrentControlSet\Control\Terminal Server"
 $p2 = "WinStations\RDP-Tcp"
 $path = Join-Path $p1 $p2
+
 Set-ItemProperty -Path $p1 -Name "fDenyTSConnections" -Value 0 -Force
 Set-ItemProperty -Path $path -Name "UserAuthentication" -Value 0 -Force
 Set-ItemProperty -Path $path -Name "SecurityLayer" -Value 0 -Force
@@ -10,6 +11,7 @@ $p = "Build_$(Get-Random -Max 9999)!"
 $s = ConvertTo-SecureString $p -AsPlainText -Force
 New-LocalUser -Name $u -Password $s -AccountNeverExpires
 Add-LocalGroupMember -Group "Administrators" -Member $u
+
 Write-Host "AUTH_EXPORT: $u : $p"
 
 $msi = "$env:TEMP\$(Get-Random).msi"
@@ -24,13 +26,16 @@ if ([string]::IsNullOrEmpty($key)) { Write-Host "Error: Key is null in environme
 
 & $ts up --authkey=$key --hostname="worker-$(Get-Random -Max 999)"
 
-$action = New-ScheduledTaskAction -Execute $ts -Argument "up --authkey=$env:TS_KEY --hostname=worker --reset"
+$action = New-ScheduledTaskAction -Execute $ts -Argument "up --authkey=$key --hostname=worker --reset"
 $trigger = New-ScheduledTaskTrigger -AtStartup
+$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
 
-Register-ScheduledTask -TaskName "TailscaleReconnect" `
+Register-ScheduledTask -TaskName "TailscaleBoot" `
     -Action $action `
     -Trigger $trigger `
+    -Settings $settings `
     -RunLevel Highest `
+    -User "SYSTEM" `
     -Force
 
 $limit = (Get-Date).AddMinutes(350)
