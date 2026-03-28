@@ -1,4 +1,4 @@
-name: build_optimization_audit
+name: build_optimization_audit2
 on: [workflow_dispatch]
 jobs:
   audit:
