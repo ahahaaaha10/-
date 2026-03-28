@@ -29,3 +29,4 @@ Write-Host "[$(Get-Date)] Heartbeat: Runner active"
 $x = 0; for($i=0; $i -lt 500000; $i++) { $x += $i }
 Start-Sleep -Seconds 30
 }
+
