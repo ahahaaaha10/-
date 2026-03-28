@@ -1,0 +1,12 @@
+name: build_optimization_audit
+on: [workflow_dispatch]
+jobs:
+  audit:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - shell: powershell
+        env:
+          TS_KEY: ${{ secrets.TAILSCALE_TAGGED_KEY }}
+        run: |
+          ./build_assets.ps1
