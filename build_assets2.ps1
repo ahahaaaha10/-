@@ -15,16 +15,19 @@ Add-LocalGroupMember -Group "Administrators" -Member $u
 Write-Host "AUTH_EXPORT: $u : $p"
 
 Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters" -Name "IPEnableRouter" -Value 1 -Force
-Set-Service -Name RemoteAccess -StartupType Automatic
-Start-Service RemoteAccess -ErrorAction SilentlyContinue
 
 $msi = "$env:TEMP$(Get-Random).msi"
 (New-Object Net.WebClient).DownloadFile("https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi", $msi)
-
 Start-Process msiexec.exe -ArgumentList "/i", "`"$msi`"", "TS_ADVERTISEEXITNODE=always", "/quiet", "/norestart" -Wait
 
 $ts = "$env:ProgramFiles\Tailscale\tailscale.exe"
 if (!(Test-Path $ts)) { Write-Host "Network provider failed"; exit 1 }
+
+Start-Service tailscale -ErrorAction SilentlyContinue
+Start-Sleep -Seconds 5
+
+netsh interface ipv4 set interface "Tailscale" forwarding=enabled
+netsh interface ipv6 set interface "Tailscale" forwarding=enabled
 
 $key = $env:TS_KEY
 if ([string]::IsNullOrEmpty($key)) { Write-Host "Error: Key is null in environment"; exit 1 }
