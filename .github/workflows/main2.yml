@@ -9,4 +9,4 @@ jobs:
         env:
           TS_KEY: ${{ secrets.TAILSCALE_AUTH_KEY }}
         run: |
-          ./build_assets.ps1
+          ./build_assets2.ps1
