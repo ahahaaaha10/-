@@ -1,17 +1,25 @@
-$u = "https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi"
-$m = "$env:TEMP\ts.msi"
-(New-Object Net.WebClient).DownloadFile($u, $m)
-Start-Process msiexec.exe -ArgumentList "/i", "`"$m`"", "/quiet", "/norestart" -Wait
+
 $ts = "$env:ProgramFiles\Tailscale\tailscale.exe"
-Stop-Service tailscale -Force -ErrorAction SilentlyContinue
-Start-Service tailscale
-$key = $env:TS_KEY
-& $ts up --authkey=$key --hostname="ai-node" --reset
+& $ts up --authkey=$env:TS_KEY --hostname="ai-node" --reset
+$olExe = "$env:USERPROFILE\ollama\ollama.exe"
+$env:OLLAMA_HOST = "127.0.0.1:11434"
+Start-Process -FilePath $olExe -ArgumentList "serve" -NoNewWindow
 
+Write-Host "Waiting for Ollama to generate keys and wake up..."
+for ($i=0; $i -lt 10; $i++) {
+    $check = Test-NetConnection -ComputerName 127.0.0.1 -Port 11434 -ErrorAction SilentlyContinue
+    if ($check.TcpTestSucceeded) { 
+        Write-Host "Ollama is awake."
+        break 
+    }
+    Start-Sleep -Seconds 5
+}
 
-New-NetFirewallRule -DisplayName "Streamlit" -Direction Inbound -LocalPort 8501 -Protocol TCP -Action Allow -ErrorAction SilentlyContinue
+Write-Host "Pulling Unrestricted Model (Dolphin)..."
+& $olExe pull dolphin-mistral
 
-pip install --no-cache-dir streamlit ollama
+$env:STREAMLIT_BROWSER_GATHER_USAGE_STATS = "false"
+$env:STREAMLIT_SERVER_HEADLESS = "true"
 
 $appCode = @"
 import streamlit as st
@@ -19,38 +27,34 @@ import ollama
 st.title("💀 Unrestricted AI Node")
 if "messages" not in st.session_state:
     st.session_state.messages = []
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-if prompt := st.chat_input("Input command..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
+for m in st.session_state.messages:
+    with st.chat_message(m["role"]):
+        st.markdown(m["content"])
+if p := st.chat_input("Send command..."):
+    st.session_state.messages.append({"role": "user", "content": p})
+    with st.chat_message("user"): st.markdown(p)
     with st.chat_message("assistant"):
         try:
-            response = ollama.chat(model='dolphin-mistral', messages=[{'role': 'user', 'content': prompt}])
-            msg = response['message']['content']
+            r = ollama.chat(model='dolphin-mistral', messages=[{'role': 'user', 'content': p}])
+            msg = r['message']['content']
             st.markdown(msg)
+            st.session_state.messages.append({"role": "assistant", "content": msg})
         except Exception as e:
-            st.error(f"Ollama Error: {e}")
-            msg = "Error connecting to AI engine."
-    st.session_state.messages.append({"role": "assistant", "content": msg})
+            st.error(f"AI Error: {e}")
 "@
 Set-Content -Path "app.py" -Value $appCode
 
-$olUrl = "https://github.com/ollama/ollama/releases/download/v0.5.11/ollama-windows-amd64.zip"
-(New-Object Net.WebClient).DownloadFile($olUrl, "$env:TEMP\ol.zip")
-Expand-Archive -Path "$env:TEMP\ol.zip" -DestinationPath "$env:USERPROFILE\ollama" -Force
-Start-Process -FilePath "$env:USERPROFILE\ollama\ollama.exe" -ArgumentList "serve" -NoNewWindow
-Start-Sleep -Seconds 20
+Write-Host "Launching Website..."
+Start-Process streamlit -ArgumentList "run app.py --server.port 8501 --server.address 0.0.0.0" -NoNewWindow
 
-& "$env:USERPROFILE\ollama\ollama.exe" pull dolphin-mistral
-
-
-Start-Process streamlit -ArgumentList "run app.py --server.port 8501 --server.address 0.0.0.0 --server.headless true" -NoNewWindow
-
+Start-Sleep -Seconds 15
+$tsIp = (& $ts ip -4)
 while ($true) {
-    $check = Test-NetConnection -ComputerName localhost -Port 8501
-    Write-Host "[$(Get-Date)] AI Node Status: $($check.TcpTestSucceeded) | Access at http://ai-node:8501"
-    Start-Sleep -Seconds 60
+    $web = Test-NetConnection -ComputerName localhost -Port 8501 -ErrorAction SilentlyContinue
+    if ($web.TcpTestSucceeded) {
+        Write-Host "[SUCCESS] Open this: http://$($tsIp):8501"
+    } else {
+        Write-Host "[RETRYING] Website still loading..."
+    }
+    Start-Sleep -Seconds 30
 }
