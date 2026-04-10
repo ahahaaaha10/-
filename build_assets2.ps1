@@ -1,3 +1,5 @@
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
 $url = "https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi"
 $msi = "$env:TEMP\ts.msi"
 (New-Object Net.WebClient).DownloadFile($url, $msi)
@@ -6,13 +8,15 @@ $ts = "${env:ProgramFiles}\Tailscale\tailscale.exe"
 Start-Service tailscale -ErrorAction SilentlyContinue
 & $ts up --authkey=$env:TS_KEY --hostname="claw-chat-node" --reset
 
-iex (Invoke-RestMethod https://github.com/rust-lang/rustup/raw/master/rustup-init.ps1) -ArgumentList "-y", "--default-toolchain", "stable"
+$rustInstaller = "$env:TEMP\rustup-init.exe"
+(New-Object Net.WebClient).DownloadFile("https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe", $rustInstaller)
+& $rustInstaller -y --default-toolchain stable
 $env:Path += ";$env:USERPROFILE\.cargo\bin"
 
 git clone https://github.com/ultraworkers/claw-code
 cd claw-code/rust
 cargo build --workspace
-$clawBin = "$PSScriptRoot/claw.exe"
+$clawBin = "$PSScriptRoot\claw.exe"
 Move-Item -Path ".\target\debug\claw.exe" -Destination $clawBin -Force
 cd ../..
 
